@@ -1,17 +1,3 @@
-/*
-$(function(){
-	var url=[];
-	url.push('<html><title>Hello, world.</title><body><h1>Hello, world.</h1></body></html>');
-	
-	var iframe=$('<iframe src="javascript:\''+url.join('')+'\'"></iframe>');
-	
-	iframe.bind('load',function(){
-		$('<div>Loaded</div>').appendTo(document.body);
-	});
-	
-	iframe.appendTo(document.body);
-});*/
-
 /**
  *	Q HtmlElement Editor
  *
@@ -24,10 +10,9 @@ $(function(){
 $.Editor=(function(){
 
 	var config={
-		element: false,
-		aclist: "ul,ol,li,dl,dd,dt,a,span,font,p,div,br,img",
-		discard: "style,script,meta",
-		toolbar: "font-size,color,bold,italic,underline,|,orderlist,unorderlist,link,|,justify-left,justify-center,justify-right",
+		whitelist: "ul,ol,li,dl,dd,dt,a,span,font,p,div,br,img".split(','),
+		blacklist: "style,script,meta".split(','),
+		toolbar: "font-size,color,bold,italic,underline,|,orderlist,unorderlist,link,|,justify-left,justify-center,justify-right".split(','),
 		maxHistory: 100
 	};
 	
@@ -193,10 +178,6 @@ $.Editor=(function(){
 			this.initSteps();
 			
 			this.initToolbar();
-
-			if(this.config.element){
-				this.load(this.config.element);
-			}
 		},
 		
 		geturl: function(str){
@@ -597,7 +578,7 @@ $.Editor=(function(){
 			
 			this.actions={
 				keyup: $.proxy(function(e){
-					//tools.fixContent(this.dom,this.config.aclist,this.config.discard);
+					//tools.fixContent(this.dom,this.config.whitelist,this.config.blacklist);
 					
 					if(e.ctrlKey&&e.keyCode==86){
 						//$(this.doc).trigger('paste');
@@ -673,7 +654,7 @@ $.Editor=(function(){
 				paste: $.proxy(function(){
 					//做延迟为了防止UI thread被阻塞
 					setTimeout($.proxy(function(){
-						tools.fixContent(this.dom,this.config.aclist,this.config.discard);
+						tools.fixContent(this.dom,this.config.whitelist,this.config.blacklist);
 						
 						this.steps.save();
 					},this),15);
@@ -1896,7 +1877,7 @@ $.Editor=(function(){
 		
 			this.render();
 			this.items=[];
-			var its=this.config.items.split(",");
+			var its=this.config.items;
 			for( var i=0; i<its.length; i++){
 				if(this.actions[its[i]]){
 					this.add(this.actions[its[i]],its[i]);
@@ -2007,7 +1988,7 @@ $.Editor=(function(){
 	toolbar.add=function(name,arg){
 	
 		if(name=="|"){
-			config.toolbar+=",|";
+			config.toolbar.push("|");
 			return;
 		}
 	
@@ -2029,33 +2010,31 @@ $.Editor=(function(){
 		
 		toolbar.prototype.actions[name]=arg;
 		
-		var ts=config.toolbar.split(',');
-		ts.push(name);
+		config.toolbar.push(name);
 		
-		for( var i=0; i<ts.length-1; i++){
-			if(ts[i]==name){
-				ts.pop();
+		for( var i=0; i<config.toolbar.length-1; i++){
+			if(config.toolbar[i]==name){
+				config.toolbar.pop();
 				break;
 			}
 		}
-		
-		config.toolbar=ts.join(',');
-		
 	}
 	
 	qeditor.toolbar=toolbar;
 	
 	
 	var tools={
-		fixContent: function(el,aclist,discard){
+		fixContent: function(el,whitelist,blacklist){
 		
-			el.find(discard).remove();
-		
+			if(blacklist.length){
+				el.find(blacklist.join(',')).remove();
+			}
+			
 			var isMatch;
-			if(typeof aclist=="undefined"||aclist===""||aclist===true||aclist=="*"){
+			if(typeof whitelist=="undefined"||!whitelist.length||whitelist===""||whitelist===true||whitelist=="*"){
 				isMatch=/.*/;
 			}else{
-				isMatch=new RegExp("(^"+aclist.split(",").join("$|^")+"$)","i");
+				isMatch=new RegExp("(^"+whitelist.join("$|^")+"$)","i");
 			}
 			
 			el.find("*").each(function(){
